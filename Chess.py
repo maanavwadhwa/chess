@@ -1,4 +1,24 @@
 from cmu_graphics import *
+class Rook:
+    def __init__(self,rank, file, color): #rank --> row, file---> col
+        self.rank = rank
+        self.file = file
+        self.color = color
+        self.image = f'Images/rook_{self.color}.png'
+        self.name = 'Rook'
+
+    def move(self, newRank, newFile):
+        self.rank = newRank
+        self.file = newFile 
+        
+    def legalMoves(self, currStateBoard):
+        #returns all legal moves for the rook
+        return
+
+    def __repr__(self):
+        return f'{self.name}: ({self.rank},{self.file}, {self.color})'
+
+
 
 def onAppStart(app):
     app.rows = 8
@@ -7,31 +27,33 @@ def onAppStart(app):
     app.boardTop = 50
     app.boardWidth = 325
     app.boardHeight = 325
-    app.cellBorderWidth = 2
-    app.board = [([None] * app.cols) for row in range(app.rows)]
-    # app.url = 'cmu://1533/159473/pawn.png'
+    app.cellBorderWidth = 1
+    app.board = initialBoard(app.rows, app.cols)
+    print(app.board)
     app.selectedCell = None
+
+def initialBoard(rows, cols):
+    board = [([None] * cols) for row in range(rows)]
+    for row in range(rows):
+        for col in range(cols):
+            if (row,col) in [(0,0),(0,7)]:
+                board[row][col] = Rook(row,col,'black')
+            elif (row,col) in [(7,0),(7,7)]:
+                board[row][col] = Rook(row,col,'white')
+    return board 
+
+
     
-# drawImage
-#     Image(app.url, 50, 100)
-
-
 def redrawAll(app):
     drawLabel('Chess', 200, 30, size=16)
     drawBoard(app)
-    drawBoardBorder(app)
+    # drawBoardBorder(app)
+    drawPieces(app)
     
-    # imageWidth, imageHeight = getImageSize(app.url)
-
-
-
-    # drawImage(app.url, 59, 315, align = 'center',
-    #           width=imageWidth//25, height=imageHeight//25)
-
 def drawBoard(app):
-    color = 'black'
-    for row in range(app.rows):
-        for col in range(app.cols):
+    rows, cols = len(app.board), len(app.board[0])
+    for row in range(rows):
+        for col in range(cols):
             if row%2 ==0 and col%2 ==0:
                 drawCell(app, row, col, 'saddleBrown')
             elif row%2 ==1 and col%2 ==1:
@@ -39,29 +61,37 @@ def drawBoard(app):
             else:
                 drawCell(app,row,col,'burlywood')
 
-def drawBoardBorder(app):
-  # draw the board outline (with double-thickness):
-  drawRect(app.boardLeft, app.boardTop, app.boardWidth, app.boardHeight,
-           fill=None, border='black',
-           borderWidth=2*app.cellBorderWidth)
+def drawPieces(app):
+    rows, cols = len(app.board), len(app.board[0])
+    for row in range(rows):
+        for col in range(cols):
+            piece = app.board[row][col]
+            print(piece)
+            if piece != None:
+                cellWidth, cellHeight = getCellSize(app)
+                xcoordinate = 38+piece.file*cellWidth+cellWidth/2
+                ycoordinate = 50+piece.rank*cellHeight+cellHeight/2
+                drawImage(piece.image, xcoordinate, 
+                       ycoordinate,align = 'center',
+                        width=cellWidth-8, height=cellHeight-8)
+
+# def drawBoardBorder(app):
+#   # draw the board outline (with double-thickness):
+#   drawRect(app.boardLeft, app.boardTop, app.boardWidth, app.boardHeight,
+#            fill=None, border='black',
+#            borderWidth=2*app.cellBorderWidth)
 
 def drawCell(app, row, col, color):
     cellLeft, cellTop = getCellLeftTop(app, row, col)
     cellWidth, cellHeight = getCellSize(app)
+    if app.selectedCell==(row, col):
+        drawRect(cellLeft, cellTop,
+            cellWidth, cellHeight,
+            fill=color, border='gold', borderWidth=3*app.cellBorderWidth)
+    else:
+        drawRect(cellLeft, cellTop, cellWidth, cellHeight,
+             fill=color)
 
-
-    drawRect(cellLeft, cellTop, cellWidth, cellHeight,
-             fill=color, border='black',
-             borderWidth=app.cellBorderWidth)
-             
-    cellColor = 'gold' if ((row, col) == app.selectedCell) else 'black'
-             
-    # if row == 0 or row == 7 or col == 0 or col == 7:
-    #     borderWidth = 2*app.cellBorderWidth
-    # cellColor = 'gold' if ((row, col) == app.selectedCell) else 'black'
-    drawRect(cellLeft, cellTop,
-            getCellSize(app)[0], getCellSize(app)[1],
-            fill=None, border=cellColor, borderWidth=app.cellBorderWidth)
 
 def getCellLeftTop(app, row, col):
     cellWidth, cellHeight = getCellSize(app)
@@ -75,8 +105,8 @@ def getCellSize(app):
     return (cellWidth, cellHeight)
 
 def getCellFromPoint(app, mouseX, mouseY):
-    for row in range(app.rows):
-        for col in range(app.cols):
+    for row in range(len(app.board)):
+        for col in range(len(app.board[0])):
             cellLeft, cellTop = getCellLeftTop(app, row, col)
             if ((cellLeft<=mouseX<=cellLeft+getCellSize(app)[0]) and 
             (cellTop<=mouseY<=cellTop+getCellSize(app)[1])):
@@ -84,18 +114,13 @@ def getCellFromPoint(app, mouseX, mouseY):
                 #     app.cellBorderWidth =
                 return (row, col)
     return None
-    
+
 def onMousePress(app, mouseX, mouseY):
     cellLocation = getCellFromPoint(app, mouseX, mouseY)
     if (cellLocation == None) or (cellLocation == app.selectedCell):
         app.selectedCell = None
-    # elif app.selectedCell == None:
-    #     app.selectedCell = cellLocation
     else:
-        app.selectedCell = cellLocation
-        
-
-
+        app.selectedCell = cellLocation #gives me (row, col)
 
 def main():
     runApp()
