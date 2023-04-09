@@ -198,22 +198,18 @@ def initialBoard(rows, cols):
 def redrawAll(app):
     drawLabel('Chess', 200, 30, size=16)
     drawBoard(app)
-    # drawBoardBorder(app)
     drawPieces(app)
     if app.showMoves == True:
         drawPossibleMoves(app)
     
 def drawPossibleMoves(app):
     currPiece = app.board[app.selectedCell[0]][app.selectedCell[1]]
-    rows, cols = len(app.board), len(app.board[0])
     possibleMoves = currPiece.legalMoves(app.board)
-    for row in range(rows):
-        for col in range(cols):
-            if ((row,col) in possibleMoves and (row,col)!=(app.selectedCell[0], app.selectedCell[1])):
-                    cellWidth, cellHeight = getCellSize(app)
-                    xcoordinate = 38+col*cellWidth+cellWidth/2
-                    ycoordinate = 50+row*cellHeight+cellHeight/2
-                    drawCircle(xcoordinate,ycoordinate, 5, fill = 'midnightBlue')
+    for row, col in possibleMoves:
+        cellWidth, cellHeight = getCellSize(app)
+        xcoordinate = app.boardLeft+col*cellWidth+cellWidth/2
+        ycoordinate = app.boardTop+row*cellHeight+cellHeight/2
+        drawCircle(xcoordinate,ycoordinate, 5, fill = 'midnightBlue')
 
 def drawBoard(app):
     rows, cols = len(app.board), len(app.board[0])
@@ -239,12 +235,6 @@ def drawPieces(app):
                        ycoordinate,align = 'center',
                         width=cellWidth-8, height=cellHeight-8)
 
-# def drawBoardBorder(app):
-#   # draw the board outline (with double-thickness):
-#   drawRect(app.boardLeft, app.boardTop, app.boardWidth, app.boardHeight,
-#            fill=None, border='black',
-#            borderWidth=2*app.cellBorderWidth)
-
 def drawCell(app, row, col, color):
     cellLeft, cellTop = getCellLeftTop(app, row, col)
     cellWidth, cellHeight = getCellSize(app)
@@ -255,7 +245,6 @@ def drawCell(app, row, col, color):
     else:
         drawRect(cellLeft, cellTop, cellWidth, cellHeight,
              fill=color)
-
 
 def getCellLeftTop(app, row, col):
     cellWidth, cellHeight = getCellSize(app)
@@ -275,8 +264,6 @@ def getCellFromPoint(app, mouseX, mouseY):
             cellLeft, cellTop = getCellLeftTop(app, row, col)
             if ((cellLeft<=mouseX<=cellLeft+cellWidth) and 
             (cellTop<=mouseY<=cellTop+cellHeight)):
-                # if row == 0 or row == 7 or col == 0 or col == 7:
-                #     app.cellBorderWidth =
                 return (row, col)
     return None
 
@@ -288,7 +275,6 @@ def onMousePress(app, mouseX, mouseY):
 
     # if I am not highlighting a cell and i click on a piece
     elif app.selectedCell == None and app.board[cellLocation[0]][cellLocation[1]]!=None:
-        currPiece = app.board[cellLocation[0]][cellLocation[1]]
         app.showMoves = True
         app.selectedCell = cellLocation
 
@@ -308,7 +294,7 @@ def onMousePress(app, mouseX, mouseY):
             app.showMoves = False
 
     #if I click somewhere on the board and that space contains a piece
-    elif cellLocation!=None and app.board[cellLocation[0]][cellLocation[1]]!=None:
+    elif app.board[cellLocation[0]][cellLocation[1]]!=None:
         if app.selectedCell!=None:
             currPiece = app.board[app.selectedCell[0]][app.selectedCell[1]]
             if (cellLocation) in currPiece.legalMoves(app.board):
@@ -316,7 +302,8 @@ def onMousePress(app, mouseX, mouseY):
                 app.board[app.selectedCell[0]][app.selectedCell[1]] = None
                 app.board[cellLocation[0]][cellLocation[1]] = currPiece
                 app.selectedCell = None
-        app.selectedCell = cellLocation 
+        else:
+            app.selectedCell = cellLocation 
 
 def main():
     runApp()
