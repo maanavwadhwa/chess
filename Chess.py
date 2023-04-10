@@ -1,4 +1,6 @@
 from cmu_graphics import *
+import copy
+
 class Rook:
     def __init__(self, rank, file, color): #rank --> row, file---> col
         self.rank = rank
@@ -140,9 +142,10 @@ class Pawn:
         #white pieces:
         if self.color == 'white':
             #check if it has moved from initial state
-            oneCellUp = currStateBoard[self.rank-1][self.file]
-            if oneCellUp==None:
-                possibleMoves.append((self.rank-1,self.file))
+            if self.rank!=0:
+                oneCellUp = currStateBoard[self.rank-1][self.file]
+                if oneCellUp==None:
+                    possibleMoves.append((self.rank-1,self.file))
             
             #check if it has moved from initial cell
             if self.movedFromInitialCell == False:
@@ -153,20 +156,21 @@ class Pawn:
             #check upleft
             if self.file!=0 and self.rank != 0:
                 upLeft = currStateBoard[self.rank-1][self.file-1]
-                if upLeft!=None:
+                if upLeft!=None and upLeft.color != self.color:
                     possibleMoves.append((self.rank-1,self.file-1))
 
             #check upright
             if self.file != 7 and self.rank!=0:
                 upRight = currStateBoard[self.rank-1][self.file+1]
-                if upRight!=None:
+                if upRight!=None and upRight.color != self.color:
                     possibleMoves.append((self.rank-1,self.file+1))
 
         elif self.color == 'black':
             #check if it has moved from initial state
-            oneCellUp = currStateBoard[self.rank+1][self.file]
-            if oneCellUp==None:
-                possibleMoves.append((self.rank+1,self.file))
+            if self.rank!=7:
+                oneCellUp = currStateBoard[self.rank+1][self.file]
+                if oneCellUp==None:
+                    possibleMoves.append((self.rank+1,self.file))
 
             #check if it has moved from initial cell
             if self.movedFromInitialCell == False:
@@ -175,15 +179,15 @@ class Pawn:
                     possibleMoves.append((self.rank+2,self.file))
 
             #check downleft
-            if self.file!=0 or self.rank != 7:
-                upLeft = currStateBoard[self.rank+1][self.file-1]
-                if upLeft!=None:
+            if self.file!=0 and self.rank != 7:
+                downLeft = currStateBoard[self.rank+1][self.file-1]
+                if downLeft!=None and downLeft.color != self.color:
                     possibleMoves.append((self.rank+1,self.file-1))
 
             #check downright
             if self.file!=7 and self.rank != 7:
-                upLeft = currStateBoard[self.rank+1][self.file+1]
-                if upLeft!=None:
+                downRight = currStateBoard[self.rank+1][self.file+1]
+                if downRight!=None and downRight.color!=self.color:
                     possibleMoves.append((self.rank+1,self.file+1))
         
         return possibleMoves
@@ -422,14 +426,18 @@ def resetBoard(app):
     app.board = initialBoard(app.rows, app.cols)
     app.selectedCell = None
     app.showMoves = False 
+    app.kingInCheck = False 
+    app.label = 'Chess'
 
 
 def redrawAll(app):
-    drawLabel("Chess", 200, 30, size=16)#16
+    drawLabel(app.label, 200, 30, size=16)#16
     drawBoard(app)
     drawPieces(app)
     if app.showMoves == True:
         drawPossibleMoves(app)
+    # if app.kingInCheck == True:
+    #     drawLabel(app.label, 200, 30, size = 16)
     
 def drawPossibleMoves(app):
     currPiece = app.board[app.selectedCell[0]][app.selectedCell[1]]
@@ -486,7 +494,7 @@ def getCellSize(app):
     cellHeight = app.boardHeight / app.rows
     return (cellWidth, cellHeight)
 
-def getCellFromPoint(app, mouseX, mouseY):
+def getCellFromClick(app, mouseX, mouseY):
     cellWidth, cellHeight = getCellSize(app)
     for row in range(len(app.board)):
         for col in range(len(app.board[0])):
@@ -497,32 +505,39 @@ def getCellFromPoint(app, mouseX, mouseY):
     return None
 
 def onMousePress(app, mouseX, mouseY):
-    cellLocation = getCellFromPoint(app, mouseX, mouseY)
-
+    cellLocation = getCellFromClick(app, mouseX, mouseY)
+    
+    #if i click outside of board
     if cellLocation == None:
         app.selectedCell = None
 
-    #if I click on cell that is already selected/highlighted, I want to make it no longer selected
-    elif app.selectedCell==cellLocation:
-        app.selectedCell = None 
+    #if i click on a cell that is already highlighted I want to make it not highlighted
+    if app.selectedCell == cellLocation:
+        app.selectedCell = None
         app.showMoves = False
 
-    #if my selectedCell is a piece and the location I click on is None, move the piece
-    elif app.selectedCell!=None:
+    #if I click on piece on the board
+    elif cellLocation != None and app.board[cellLocation[0]][cellLocation[1]]!=None:
+        #if my currently selected cell is none (I am not on a piece)
+        if app.selectedCell == None:
+            app.selectedCell = cellLocation
+        
+        #if my currently selected cell is a piece and I click on a another piece of my color show it
+        elif app.selectedCell!=None and app.board[app.selectedCell[0]][app.selectedCell[1]].color == app.board[cellLocation[0]][cellLocation[1]].color:
+             app.selectedCell = cellLocation
+        app.showMoves = True
+
+    #if my selectedCell is a piece and the location I click on is None or has piece, move the piece
+    if app.selectedCell!=None:
         currPiece = app.board[app.selectedCell[0]][app.selectedCell[1]]
+        # doNotIncludeKingInLegalMoves(app, currPiece, app.board)
         if (cellLocation) in currPiece.legalMoves(app.board):
             currPiece.move(cellLocation[0], cellLocation[1])
             app.board[app.selectedCell[0]][app.selectedCell[1]] = None
             app.board[cellLocation[0]][cellLocation[1]] = currPiece
             app.selectedCell = None
             app.showMoves = False
-
-    # if I am not highlighting a cell and i click on a piece highlight it
-    if app.board[cellLocation[0]][cellLocation[1]]!=None:
-        app.showMoves = True
-        app.selectedCell = cellLocation
             
-
 def onKeyPress(app, key):
     if key == 'r':
         resetBoard(app)
