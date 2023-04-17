@@ -7,26 +7,26 @@ def onAppStart(app):
 def resetBoard(app):
     app.boardLeft = 37.5
     app.boardTop = 50
-    app.boardWidth = 325
-    app.boardHeight = 325
+    app.boardWidth = 525 
+    app.boardHeight = 525 
     app.cellBorderWidth = 1
     app.board = Board()
     app.selectedCell = None
     app.showMoves = False 
     app.promotionBoard = [['Queen'],['Rook'],['Knight'],['Bishop']]
-    app.promotionBoardLeft = 78
-    app.promotionBoardTop = 130
-    app.promotionBoardWidth = 244
-    app.promotionBoardHeight = 162.5
+    app.promotionBoardLeft = 169 
+    app.promotionBoardTop = 181 
+    app.promotionBoardWidth = 262 
+    app.promotionBoardHeight = 263 
 
 def redrawAll(app):
-    drawLabel(app.board.message, 200, 30, size=16)
+    drawRect(0,0, 600, 600, fill = 'darkSlateGray')
+    drawLabel(app.board.message, 300, 25, size=app.board.fontSize, fill = 'gainsboro', font = 'monospace', bold = True)
     drawBoard(app)
     drawPieces(app)
     if app.showMoves == True:
         drawPossibleMoves(app)
-    # if app.kingInCheck == True:
-    #     drawLabel(app.label, 200, 30, size = 16)
+
     if app.board.promotablePiece!=None:
         drawPromotionBoard(app)
     
@@ -38,7 +38,7 @@ def drawPossibleMoves(app):
             cellWidth, cellHeight = getCellSize(app)
             xcoordinate = app.boardLeft+col*cellWidth+cellWidth/2
             ycoordinate = app.boardTop+row*cellHeight+cellHeight/2
-            drawCircle(xcoordinate,ycoordinate, 6, fill = 'yellow', opacity = 80)
+            drawCircle(xcoordinate,ycoordinate, 7, fill = None, border = 'yellow', borderWidth = 4)
 
 def drawBoard(app):
     rows, cols = app.board.rows, app.board.cols
@@ -60,14 +60,15 @@ def drawPieces(app):
                 cellWidth, cellHeight = getCellSize(app)
                 xcoordinate = app.boardLeft+piece.file*cellWidth+cellWidth/2
                 ycoordinate = app.boardTop+piece.rank*cellHeight+cellHeight/2
+                # CITATION: I got the chess pieces' images from https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
                 drawImage(piece.image, xcoordinate, 
                        ycoordinate,align = 'center',
-                        width=cellWidth-8, height=cellHeight-8)
+                        width=cellWidth, height=cellHeight)
 
 def drawCell(app, row, col, color):
     cellLeft, cellTop = getCellLeftTop(app, row, col)
     cellWidth, cellHeight = getCellSize(app)
-    if app.selectedCell==(row, col) and app.board.promotablePiece==None and app.board.message!='Checkmate!! Press r to play again':
+    if app.selectedCell==(row, col) and app.board.promotablePiece==None and not app.board.gameOver:
         drawRect(cellLeft, cellTop,
             cellWidth, cellHeight,
             fill=color, border='gold', borderWidth=3*app.cellBorderWidth)
@@ -75,6 +76,7 @@ def drawCell(app, row, col, color):
         drawRect(cellLeft, cellTop, cellWidth, cellHeight,
              fill=color)
 
+#CITATION: I used the getCellLeftTop and getCellSize functions we used when making Tetris 
 def getCellLeftTop(app, row, col):
     cellWidth, cellHeight = getCellSize(app)
     cellLeft = app.boardLeft + col * cellWidth
@@ -100,16 +102,8 @@ def onMousePress(app, mouseX, mouseY):
     #revisit and fix up 
     cellLocation = getCellFromClick(app, mouseX, mouseY)
 
-    if app.board.promotablePiece!=None:
-        if getPromotionCellFromClick(app, mouseX, mouseY) != None:
-            rowClicked, colClicked = getPromotionCellFromClick(app, mouseX, mouseY)
-            pieceDesired = app.promotionBoard[rowClicked][colClicked]
-            app.board.promotion(pieceDesired)
-            
-
-
     if app.board.promotablePiece == None:
-    #if i click outside of board
+        #if i click outside of board
         if cellLocation == None:
             app.selectedCell = None
 
@@ -121,6 +115,7 @@ def onMousePress(app, mouseX, mouseY):
         #if I click on piece on the board
         elif cellLocation != None and app.board.board[cellLocation[0]][cellLocation[1]]!=None:
             currPiece = app.board.board[cellLocation[0]][cellLocation[1]]
+
             if currPiece.color == app.board.playerTurn:
                 #if my currently selected cell is none (I am not on a piece)
                 if app.selectedCell == None:
@@ -130,7 +125,8 @@ def onMousePress(app, mouseX, mouseY):
                 elif app.selectedCell!=None and app.board.board[app.selectedCell[0]][app.selectedCell[1]].color == app.board.board[cellLocation[0]][cellLocation[1]].color:
                     app.selectedCell = cellLocation
                 app.showMoves = True
-
+            else:
+                app.board.message = 'Not your turn yet!'     
 
         #if my selectedCell is a piece and the location I click on is None or has piece, move the piece
         if app.selectedCell!=None:
@@ -138,27 +134,17 @@ def onMousePress(app, mouseX, mouseY):
             if currPiece.color == app.board.playerTurn:
                 if (cellLocation) in app.board.updatedLegalMoves(currPiece):
                     app.board.move(currPiece, cellLocation)
-
-                        
-                    # if app.message != 'Chess':
-                    #     app.message = 'Chess'
-                    # if app.board.isStalemate():
-                    #     app.message = 'Stalemate!'
-                    
-                    # elif app.board.isCheckmate():
-                    #     app.message = 'Checkmate!'
-                
-                    # elif app.board.kingInCheck:
-                    #     app.message = 'Check!!'
-
-                    # else:
-                    #     app.message = 'Chess'
-
                     app.selectedCell = None
                     app.showMoves = False
 
+    if app.board.promotablePiece!=None:
+        if getPromotionCellFromClick(app, mouseX, mouseY) != None:
+            rowClicked, colClicked = getPromotionCellFromClick(app, mouseX, mouseY)
+            pieceDesired = app.promotionBoard[rowClicked][colClicked]
+            app.board.promotion(pieceDesired)
+
 def onKeyPress(app, key):
-    if key == 'r': 
+    if key == 'r': #and app.board.gameOver: 
         resetBoard(app)
 
 def drawPromotionBoard(app):
@@ -173,7 +159,7 @@ def drawPromotionCell(app, row, col, color):
     drawRect(cellLeft, cellTop,
             cellWidth, cellHeight,
             fill=color, border='black', borderWidth=3*app.cellBorderWidth)
-    drawLabel(f'{app.promotionBoard[row][col]}', (cellLeft+(cellWidth)/2), (cellTop+(cellHeight)/2), align = 'center')
+    drawLabel(f'{app.promotionBoard[row][col]}', (cellLeft+(cellWidth)/2), (cellTop+(cellHeight)/2), size = 20, bold = True, align = 'center')
 
 def getPromotionCellLeftTop(app, row, col):
     cellWidth, cellHeight = getPromotionCellSize(app)
@@ -197,9 +183,8 @@ def getPromotionCellFromClick(app, mouseX, mouseY):
             (cellTop<=mouseY<=cellTop+cellHeight)):
                 return (row, col)
     return None
-            
 
 def main():
-    runApp(width = 400, height = 400)
+    runApp(width = 600, height = 600)
 
 main()

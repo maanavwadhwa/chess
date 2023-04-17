@@ -1,3 +1,6 @@
+def isInbounds(rank, file, rows, cols):
+    return 0<=rank<rows and 0<=file<cols
+
 def getUpwardMoves(piece, currStateBoard):
     possibleMoves = []
     for i in range(piece.rank-1,-1,-1):
@@ -111,5 +114,3 @@ def getDownwardLeftMoves(piece, currStateBoard):
         j+=1
     return possibleMoves
 
-def isInbounds(rank, file, rows, cols):
-    return 0<=rank<rows and 0<=file<cols

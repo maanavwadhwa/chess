@@ -12,36 +12,28 @@ class Board:
         self.cols = 8
         board = [([None] * self.cols) for row in range(self.rows)]
         #clean up code for constructing initial board
-        for row in range(self.rows):
-            for col in range(self.cols):
-                if (row,col) in [(0,0),(0,7)]:
-                    board[row][col] = Rook(row,col,'black')
-                elif (row,col) in [(7,0),(7,7)]:
-                    board[row][col] = Rook(row,col,'white')
-                elif (row, col) in [(0,2),(0,5)]:
-                    board[row][col] = Bishop(row,col,'black')
-                elif (row,col) in [(7,2),(7,5)]:
-                    board[row][col] = Bishop(row,col,'white')
-                elif (row,col) == (0,3):
-                    board[row][col] = Queen(row,col,'black')
-                elif (row,col) == (7,3):
-                    board[row][col] = Queen(row,col,'white')
-                elif row == 1:
-                    board[row][col] = Pawn(row,col, 'black')
-                elif row == 6:
-                    board[row][col] = Pawn(row, col, 'white')
-                elif (row,col) == (0,4):
-                    board[row][col] = King(row,col, 'black')
-                elif (row,col) == (7,4):
-                    board[row][col] = King(row,col, 'white')
-                elif (row,col) in [(0,1),(0,6)]:
-                    board[row][col] = Knight(row,col, 'black')
-                elif (row,col) in [(7,1),(7,6)]:
-                    board[row][col] = Knight(row,col,'white')
-        self.board = board
-        self.playerTurn = 'white' #white starts off
-        self.blackKing = board[0][4] #updates properties of object every time it moves
-        self.whiteKing = board[7][4]
+        board[0][0] = Rook(0,0,'black')
+        board[0][1] = Knight(0,1,'black')
+        board[0][2] = Bishop(0,2,'black')
+        board[0][3] = Queen(0,3,'black')
+        board[0][4] = King(0,4,'black')
+        board[0][5] = Bishop(0,5,'black')
+        board[0][6] = Knight(0,6,'black')
+        board[0][7] = Rook(0,7,'black')
+
+        board[7][0] = Rook(7,0,'white')
+        board[7][1] = Knight(7,1,'white')
+        board[7][2] = Bishop(7,2,'white')
+        board[7][3] = Queen(7,3,'white')
+        board[7][4] = King(7,4,'white')
+        board[7][5] = Bishop(7,5,'white')
+        board[7][6] = Knight(7,6,'white')
+        board[7][7] = Rook(7,7,'white')
+
+        for i in range(self.cols):
+            board[1][i] = Pawn(1,i,'black')
+            board[6][i] = Pawn(6,i,'white')
+
         self.blackPieces = [(board[0][0]),(board[0][1]),(board[0][2]), 
                             (board[0][3]), (board[0][4]),(board[0][5]),(board[0][6]),
                             (board[0][7]), (board[1][0]),(board[1][1]),(board[1][2]), 
@@ -53,27 +45,39 @@ class Board:
                             (board[7][7]), (board[6][0]),(board[6][1]),(board[6][2]), 
                             (board[6][3]), (board[6][4]),(board[6][5]),
                             (board[6][6]), (board[6][7])]
-        
+
+        self.board = board
+        self.playerTurn = 'white' #white starts off
+        self.blackKing = board[0][4] #updates properties of object every time it moves
+        self.whiteKing = board[7][4]
         self.kingInCheck = False
         self.promotablePiece = None
         self.message = 'Chess'
+        self.gameOver = False
+        self.fontSize = 35
+        self.removedPiece = False
 
     def move(self, piece, desiredCellLocation):#takes piece and place I want it to move and updates board
         #if king is moving two spaces castle, otherwise perform move regularly
+        self.message = 'Chess'
+        self.fontSize = 35
         row, col = desiredCellLocation
+
         if isinstance(piece,King) and abs(col-piece.file) == 2:
             self.castling((desiredCellLocation))
         else:
             self.board[piece.rank][piece.file] = None
             pieceAtDesiredCell = self.board[row][col]
             self.removeCapturedPiece(pieceAtDesiredCell)
-            piece.move(row, col)
-            self.board[row][col] = piece
+            piece.move(row, col) #updates pieces rank and file but doesn't update board until next line
+            self.board[row][col] = piece #updates board
 
+        
         #promotion
         if isinstance(piece, Pawn) and (piece.rank == 7 or piece.rank == 0):
             self.promotablePiece = piece
             self.message = "Which piece would you like?"
+            self.fontSize = 30
 
         if self.playerTurn == 'white': #updating playerTurn before seeing if king in check
             self.playerTurn = 'black'
@@ -81,20 +85,36 @@ class Board:
             self.playerTurn = 'white'
 
         self.seeIfKingInCheck() #whoevers current turn it is are they in check
-        self.seeIfCheckmate()
-        self.seeIfStalemate()
         
-    def seeIfStalemate(self):
-        if self.kingInCheck == False and self.noMovesToMake():
-            self.message = 'Stalemate!'
-        #     return True
-        # return False
-    
-    def seeIfCheckmate(self):
-        if self.kingInCheck == True and self.noMovesToMake():
-            self.message = 'Checkmate!! Press r to play again'
-        #     return True
-        # return False
+        if self.isCheckmate():
+            self.gameOver = True
+            self.message ='Checkmate!! Press r to play again'
+            self.fontSize = 25
+        elif self.isStalemate():
+            self.gameOver = True
+            self.message ='Stalemate!! Press r to play again'
+            self.fontSize = 25
+
+    def seeIfKingInCheck(self): #is king in check after I simulate move and is king in check after every move in general
+        self.kingInCheck = False #false until proven true
+        # self.message = 'Chess'
+        if self.playerTurn == 'black':
+            for cell in self.whitePieces:
+                if (self.blackKing.rank, self.blackKing.file) in cell.legalMoves(self.board):
+                    self.message = 'Check!'
+                    self.kingInCheck = True  
+
+        elif self.playerTurn == 'white':
+            for cell in self.blackPieces:
+                if (self.whiteKing.rank, self.whiteKing.file) in cell.legalMoves(self.board):
+                    self.message = 'Check!'
+                    self.kingInCheck = True
+                    
+    def isCheckmate(self):
+        return self.kingInCheck and self.noMovesToMake()
+
+    def isStalemate(self):
+        return self.kingInCheck == False and self.noMovesToMake()
         
     def noMovesToMake(self): #have to take into account the check
         if self.playerTurn == 'white':
@@ -124,18 +144,23 @@ class Board:
             originalFile = replicaBoardPiece.file
             pieceAtNewSquare = replicaBoard.board[row][col] 
 
-            replicaBoardPiece.simulateMove(row,col)
+            #simulate move
+            replicaBoardPiece.rank = row 
+            replicaBoardPiece.file = col 
             replicaBoard.board[originalRank][originalFile] = None
             #check if newSquare has another piece, if so remove that piece from its list of colored pieces
             replicaBoard.removeCapturedPiece(pieceAtNewSquare)
             replicaBoard.board[row][col] = replicaBoardPiece  
+
             replicaBoard.seeIfKingInCheck()
             if not replicaBoard.kingInCheck: 
                 res.append((row,col))
 
-            #undo move
-            replicaBoardPiece.simulateMove(originalRank,originalFile)
+            #undo simulated move
+            replicaBoardPiece.rank = originalRank 
+            replicaBoardPiece.file = originalFile
             replicaBoard.board[originalRank][originalFile] = replicaBoardPiece
+            replicaBoard.board[row][col] = None 
             replicaBoard.addPiece(pieceAtNewSquare)
 
         #if i can move king two cells over but in moving it one cell over it would be in check remove ability to move two cells over 
@@ -145,28 +170,16 @@ class Board:
             if (piece.rank, piece.file+2) in res and (piece.rank, piece.file+1) not in res:
                 res.remove((piece.rank, piece.file+2))
         return res
-    
-    def seeIfKingInCheck(self): #is king in check after I simulate move and is king in check after every move in general
-        self.kingInCheck = False #false until proven true
-        self.message = 'Chess'
-        if self.playerTurn == 'black':
-            for cell in self.whitePieces:
-                if (self.blackKing.rank, self.blackKing.file) in cell.legalMoves(self.board):
-                    self.message = 'Check!'
-                    self.kingInCheck = True  
-
-        elif self.playerTurn == 'white':
-            for cell in self.blackPieces:
-                if (self.whiteKing.rank, self.whiteKing.file) in cell.legalMoves(self.board):
-                    self.message = 'Check!'
-                    self.kingInCheck = True
 
     def removeCapturedPiece(self, pieceCaptured): 
+        self.removedPiece = False
         if pieceCaptured!=None:
             if pieceCaptured.color == 'white':
                 self.whitePieces.remove(pieceCaptured)
+                self.removedPiece = True
             else:
                 self.blackPieces.remove(pieceCaptured)
+                self.removedPiece= True
             self.board[pieceCaptured.rank][pieceCaptured.file] = None
 
     def addPiece(self, piece):#for promotion and updating replicaBoard
@@ -179,12 +192,15 @@ class Board:
 
     def promotion(self, pieceDesired):
         self.message = 'Chess'
+        #CITATION: https://stackoverflow.com/questions/1176136/convert-string-to-python-class-object
         pieceClass = eval(pieceDesired)
         newPiece = pieceClass(self.promotablePiece.rank, self.promotablePiece.file, self.promotablePiece.color)
         self.addPiece(newPiece)
         self.seeIfKingInCheck()
-        self.seeIfCheckmate()
-        self.seeIfStalemate()
+        if self.isCheckmate():
+            self.message = 'Checkmate!! Press r to play again'
+        elif self.isStalemate():
+            self.message = 'Stalemate!! Press r to play again'
         self.promotablePiece = None
 
     def castling(self, desiredCell):
@@ -264,8 +280,6 @@ class Board:
                         self.board[0][7].movedFromInitialCell ==False):
                         castlingRes.append((kingPiece.rank,kingPiece.file+2)) 
         return castlingRes 
-     
+    
     def __repr__(self):
         return f'{self.board}'
-
-
