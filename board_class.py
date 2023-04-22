@@ -11,7 +11,7 @@ class Board:
         self.rows = 8
         self.cols = 8
         board = [([None] * self.cols) for row in range(self.rows)]
-        #clean up code for constructing initial board
+
         board[0][0] = Rook(0,0,'black')
         board[0][1] = Knight(0,1,'black')
         board[0][2] = Bishop(0,2,'black')
@@ -56,6 +56,7 @@ class Board:
         self.gameOver = False
         self.fontSize = 35
         self.removedPiece = False
+        self.gameLog = []
 
     def move(self, piece, desiredCellLocation):#takes piece and place I want it to move and updates board
         #if king is moving two spaces castle, otherwise perform move regularly
@@ -72,32 +73,32 @@ class Board:
             piece.move(row, col) #updates pieces rank and file but doesn't update board until next line
             self.board[row][col] = piece #updates board
 
-        
+        self.gameLog.append((row,col))
         #promotion
         if isinstance(piece, Pawn) and (piece.rank == 7 or piece.rank == 0):
             self.promotablePiece = piece
             self.message = "Which piece would you like?"
             self.fontSize = 30
 
-        if self.playerTurn == 'white': #updating playerTurn before seeing if king in check
-            self.playerTurn = 'black'
         else:
-            self.playerTurn = 'white'
+            #updating playerTurn before seeing if king in check
+            self.playerTurn = 'black' if self.playerTurn == 'white' else 'white'
 
-        self.seeIfKingInCheck() #whoevers current turn it is are they in check
-        
-        if self.isCheckmate():
-            self.gameOver = True
-            self.message ='Checkmate!! Press r to play again'
-            self.fontSize = 25
-        elif self.isStalemate():
-            self.gameOver = True
-            self.message ='Stalemate!! Press r to play again'
-            self.fontSize = 25
+            self.seeIfKingInCheck() 
+            
+            if self.isCheckmate():
+                self.gameOver = True
+                self.message ='Checkmate!! Press r to play again'
+                self.fontSize = 25
+            elif self.isStalemate():
+                self.gameOver = True
+                self.message ='Stalemate!! Press r to play again'
+                self.fontSize = 25
 
-    def seeIfKingInCheck(self): #is king in check after I simulate move and is king in check after every move in general
+    def seeIfKingInCheck(self): 
+        #is king in check after I simulate move and 
+        #is king in check after every move in general
         self.kingInCheck = False #false until proven true
-        # self.message = 'Chess'
         if self.playerTurn == 'black':
             for cell in self.whitePieces:
                 if (self.blackKing.rank, self.blackKing.file) in cell.legalMoves(self.board):
@@ -116,7 +117,7 @@ class Board:
     def isStalemate(self):
         return self.kingInCheck == False and self.noMovesToMake()
         
-    def noMovesToMake(self): #have to take into account the check
+    def noMovesToMake(self):
         if self.playerTurn == 'white':
             pieces = self.whitePieces 
         else:
@@ -130,25 +131,28 @@ class Board:
         res = []
         #copy board so that I am not directly mutating the original board
         replicaBoard = copy.deepcopy(self) 
-        #original piece does not update for replicaBoard since replicaBoard is a deepcopy, must get replicaBoardPiece
+        #original piece does not update for replicaBoard since replicaBoard is a deepcopy, 
+        #must get replicaBoardPiece
         replicaBoardPiece = replicaBoard.board[piece.rank][piece.file]
         initialLegalMoves = replicaBoardPiece.legalMoves(replicaBoard.board)
 
-        #if my piece is a King, its initial moves should include its set of standard one space moves along with castling moves
+        #if my piece is a King, its initial moves should include its set of standard one space 
+        #moves along with castling moves
         if isinstance(replicaBoardPiece, King) and not replicaBoard.kingInCheck: 
             initialLegalMoves = initialLegalMoves + replicaBoard.getCastlingMoves(replicaBoardPiece) 
 
-        #simulate each move and if it still leaves king in check exclude it from updated legal moves
+        #simulate each move and if it still leaves king in check exclude it from 
+        #updated legal moves
         for (row,col) in initialLegalMoves:
             originalRank = replicaBoardPiece.rank
             originalFile = replicaBoardPiece.file
             pieceAtNewSquare = replicaBoard.board[row][col] 
 
             #simulate move
-            replicaBoardPiece.rank = row 
-            replicaBoardPiece.file = col 
+            replicaBoardPiece.simulateMove(row,col)
             replicaBoard.board[originalRank][originalFile] = None
-            #check if newSquare has another piece, if so remove that piece from its list of colored pieces
+            #check if newSquare has another piece, if so remove that piece from its 
+            #list of colored pieces
             replicaBoard.removeCapturedPiece(pieceAtNewSquare)
             replicaBoard.board[row][col] = replicaBoardPiece  
 
@@ -157,13 +161,13 @@ class Board:
                 res.append((row,col))
 
             #undo simulated move
-            replicaBoardPiece.rank = originalRank 
-            replicaBoardPiece.file = originalFile
+            replicaBoardPiece.simulateMove(originalRank, originalFile)
             replicaBoard.board[originalRank][originalFile] = replicaBoardPiece
             replicaBoard.board[row][col] = None 
             replicaBoard.addPiece(pieceAtNewSquare)
 
-        #if i can move king two cells over but in moving it one cell over it would be in check remove ability to move two cells over 
+        #if i can move king two cells over but in moving it one cell over it would 
+        #be in check remove ability to move two cells over 
         if isinstance(piece, King):
             if (piece.rank,piece.file-2) in res and (piece.rank, piece.file -1) not in res:
                 res.remove((piece.rank,piece.file-2))
@@ -192,10 +196,12 @@ class Board:
 
     def promotion(self, pieceDesired):
         self.message = 'Chess'
-        #CITATION: https://stackoverflow.com/questions/1176136/convert-string-to-python-class-object
+        #CITATION: used 'eval' for next line: https://stackoverflow.com/questions/1176136/convert-string-to-python-class-object
         pieceClass = eval(pieceDesired)
         newPiece = pieceClass(self.promotablePiece.rank, self.promotablePiece.file, self.promotablePiece.color)
+        self.removeCapturedPiece(self.promotablePiece)
         self.addPiece(newPiece)
+        self.playerTurn = 'black' if self.playerTurn == 'white' else 'white'
         self.seeIfKingInCheck()
         if self.isCheckmate():
             self.message = 'Checkmate!! Press r to play again'
@@ -255,8 +261,7 @@ class Board:
             betweenRookAndKingLeftSide = (None, None, None)
             betweenRookAndKingRightSide = (None, None)
             if kingPiece.color == 'white':
-                #check if rook has moved from initial cell
-                #how do i do that? check if rook is at its normal position and see if it has moved
+                #check if rook is at its normal position and see if it has moved
                 #castling left side
                 if (self.board[7][1], self.board[7][2], self.board[7][3]) == betweenRookAndKingLeftSide:
                     if (isinstance(self.board[7][0],Rook) and
@@ -281,5 +286,115 @@ class Board:
                         castlingRes.append((kingPiece.rank,kingPiece.file+2)) 
         return castlingRes 
     
+    def allMovesAvailableBlack(self):
+        resultBlack = dict()
+        for piece in self.blackPieces:
+            resultBlack[piece] = self.updatedLegalMoves(piece)
+        return resultBlack
+    
+    def allMovesAvailableWhite(self):
+        resultWhite = dict()
+        for piece in self.whitePieces:
+            resultWhite[piece] = self.updatedLegalMoves(piece)
+        return resultWhite
+    
     def __repr__(self):
         return f'{self.board}'
+    
+#CITATION: I referred to the minimax pseudocode in the TP Guide on Game AI pdf provided
+#https://www.cs.cmu.edu/~112/notes/student-tp-guides/GameAI.pdf
+def miniMaxAlgo(boardInstance, depth, maximizing):
+    if depth == 0 or boardInstance.gameOver:
+        return (value(boardInstance), )
+    duplicateBoard = copy.deepcopy(boardInstance)
+    if maximizing:
+        bestScore = -10000000
+        bestMove = None
+        blackPieceMoves = duplicateBoard.allMovesAvailableBlack()
+        moves = blackPieceMoves
+        promotionPawnRank = 7
+    else:
+        bestScore = 10000000
+        bestMove = None
+        whitePieceMoves = duplicateBoard.allMovesAvailableWhite()
+        moves = whitePieceMoves
+        promotionPawnRank = 0
+
+    for piece in moves:
+        originalRank = piece.rank
+        originalFile = piece.file
+        for row,col in moves[piece]:
+            pieceAtNewSquare = duplicateBoard.board[row][col] 
+            piece.simulateMove(row, col)
+            duplicateBoard.board[originalRank][originalFile] = None
+            duplicateBoard.removeCapturedPiece(pieceAtNewSquare)
+            if type(piece) == Pawn and piece.rank == promotionPawnRank:
+                duplicateBoard.removeCapturedPiece(piece)
+                duplicateBoard.addPiece(Queen(piece.rank, piece.file, piece.color))
+            else:    
+                #check if newSquare has another piece, if so remove that piece 
+                #from its list of colored pieces
+                duplicateBoard.board[row][col] = piece 
+            duplicateBoard.playerTurn = 'white' if duplicateBoard.playerTurn == 'black' else 'black'
+            #use updated board as boardstate and obtain score from boardstate
+            score = miniMaxAlgo(duplicateBoard, depth-1, False)
+            x = score[0]>bestScore if maximizing else score[0]<bestScore
+            if x:
+                bestScore = score[0]
+                bestMove = (piece, (row,col))
+            #undo move
+            if type(piece) == Pawn and piece.rank == promotionPawnRank:
+                duplicateBoard.removeCapturedPiece(duplicateBoard.board[piece.rank][piece.file])
+                duplicateBoard.addPiece(piece)
+            piece.simulateMove(originalRank,originalFile)
+            duplicateBoard.board[originalRank][originalFile] = piece
+            duplicateBoard.board[row][col] = None 
+            duplicateBoard.addPiece(pieceAtNewSquare)
+            duplicateBoard.playerTurn = 'black' if duplicateBoard.playerTurn == 'white' else 'white'
+    return (bestScore, bestMove)
+
+#valueHelper function and value function below for minimax algo
+def valueHelper(boardObject, piece):
+    score = 0
+    if piece.rank in (3,4) and piece.file in (3,4) and len(boardObject.blackPieces)>=13:
+        score+=1
+    if ((type(piece)!= King or type(piece)!=Pawn or type(piece) != Rook) and 
+        len(boardObject.gameLog)<12 and piece.movedFromInitialCell):
+        score += 2
+    if type(piece) == Knight and len(piece.legalMoves(boardObject.board))>=4:
+        score+=1
+    elif ((type(piece) == Bishop or type(piece) == Rook) and 
+            len(piece.legalMoves(boardObject.board))>=5 and len(boardObject.gameLog)<=8):
+        score+=1
+    elif type(piece) == Queen and len(piece.legalMoves(boardObject.board))>15:
+        score+=1
+    return score
+
+def value(boardObject):
+    score = 0
+    #totalpointsWorth when starting game = 9+5(2)+3(4)+8(1)=39
+    sumBlack = 0
+    sumWhite = 0
+    for piece in boardObject.blackPieces:
+        sumBlack+=piece.pointsWorth
+        score += valueHelper(boardObject, piece)
+    for piece in boardObject.whitePieces:
+        sumWhite+=piece.pointsWorth
+        score -= valueHelper(boardObject, piece)
+
+    if boardObject.playerTurn == 'black':
+        sign = -1
+        kingRank = 0
+    else:
+        sign = 1
+        kingRank = 7
+        
+    if boardObject.kingInCheck:
+        score += (sign*6)
+    if boardObject.isCheckmate():
+        score += (sign*400)
+    if type(boardObject.board[kingRank][4])!=King:
+        score += (sign*6)
+    score+=(sumBlack-sumWhite)
+    return score
+

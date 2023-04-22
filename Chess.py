@@ -1,7 +1,10 @@
-from board_class import Board
+from board_class import Board, miniMaxAlgo
 from cmu_graphics import *
 
 def onAppStart(app):
+    app.width = 600
+    app.height = 600
+    app.mode = None
     resetBoard(app)
 
 def resetBoard(app):
@@ -19,7 +22,40 @@ def resetBoard(app):
     app.promotionBoardWidth = 262 
     app.promotionBoardHeight = 263 
 
-def redrawAll(app):
+#CITATION: To create a main screen, I relied on the framework taught in lecture on 4/18
+def main_redrawAll(app):
+    drawRect(0,0,600,600, fill = 'peachPuff', border = 'darkSlateGray', borderWidth = 15)
+    drawLabel('Welcome to Chessmate!', app.width/2,app.height/4, size = 40, font = 'sacramento')
+    drawLabel('Which mode would you like to play?', app.width/2,app.height/2.5, size = 25, font = 'cinzel')
+    drawMultiplayerButton(app)
+    drawEasyAIButton(app)
+    drawMediumAIButton(app)
+    drawHardAIButton(app)
+    drawImage('Images/queen_white.png', 100, 
+            400,align = 'center',
+            width=100, height=100, rotateAngle = -30)
+    drawImage('Images/queen_black.png', 500, 
+            400,align = 'center',
+            width=100, height=100, rotateAngle = 30)
+
+def main_onMousePress(app, mouseX, mouseY):
+    if isMultiplayerClicked(app, mouseX, mouseY):
+        app.mode = 'multiplayer'
+        setActiveScreen('game')
+    elif isEasyAIClicked(app, mouseX, mouseY):
+        app.mode = 'easyAI'
+        app.depth = 1 
+        setActiveScreen('game')
+    elif isMediumAIClicked(app, mouseX, mouseY):
+        app.mode = 'mediumAI'
+        app.depth = 2 
+        setActiveScreen('game') 
+    elif isHardAIClicked(app,mouseX,mouseY):
+        app.mode = 'hardAI'
+        app.depth = 3
+        setActiveScreen('game')
+
+def game_redrawAll(app):
     drawRect(0,0, 600, 600, fill = 'darkSlateGray')
     drawLabel(app.board.message, 300, 25, size=app.board.fontSize, fill = 'gainsboro', font = 'monospace', bold = True)
     drawBoard(app)
@@ -29,7 +65,8 @@ def redrawAll(app):
 
     if app.board.promotablePiece!=None:
         drawPromotionBoard(app)
-    
+    drawLabel("Press space bar to return to menu", app.width/2, 585, size = 14, fill = 'white')
+ 
 def drawPossibleMoves(app):
     currPiece = app.board.board[app.selectedCell[0]][app.selectedCell[1]]
     if currPiece.color == app.board.playerTurn and app.board.promotablePiece==None:
@@ -60,7 +97,7 @@ def drawPieces(app):
                 cellWidth, cellHeight = getCellSize(app)
                 xcoordinate = app.boardLeft+piece.file*cellWidth+cellWidth/2
                 ycoordinate = app.boardTop+piece.rank*cellHeight+cellHeight/2
-                # CITATION: I got the chess pieces' images from https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
+                #CITATION: I got the chess pieces' images from https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
                 drawImage(piece.image, xcoordinate, 
                        ycoordinate,align = 'center',
                         width=cellWidth, height=cellHeight)
@@ -98,8 +135,7 @@ def getCellFromClick(app, mouseX, mouseY):
                 return (row, col)
     return None
 
-def onMousePress(app, mouseX, mouseY):
-    #revisit and fix up 
+def game_onMousePress(app, mouseX, mouseY):
     cellLocation = getCellFromClick(app, mouseX, mouseY)
 
     if app.board.promotablePiece == None:
@@ -124,6 +160,7 @@ def onMousePress(app, mouseX, mouseY):
                 #if my currently selected cell is a piece and I click on a another piece of my color show it
                 elif app.selectedCell!=None and app.board.board[app.selectedCell[0]][app.selectedCell[1]].color == app.board.board[cellLocation[0]][cellLocation[1]].color:
                     app.selectedCell = cellLocation
+                app.board.message = 'Chess'
                 app.showMoves = True
             else:
                 app.board.message = 'Not your turn yet!'     
@@ -143,8 +180,21 @@ def onMousePress(app, mouseX, mouseY):
             pieceDesired = app.promotionBoard[rowClicked][colClicked]
             app.board.promotion(pieceDesired)
 
-def onKeyPress(app, key):
-    if key == 'r': #and app.board.gameOver: 
+def game_onMouseRelease(app,mouseX,mouseY):
+    if app.board.playerTurn == 'black' and 'AI' in app.mode and not app.board.gameOver:
+        piece, newMove = miniMaxAlgo(app.board, app.depth, True)[1]
+        pieceOnOriginalBoard = app.board.board[piece.rank][piece.file]
+        app.board.move(pieceOnOriginalBoard,newMove)
+        if app.board.promotablePiece!=None:
+            pieceDesired = 'Queen'
+            app.board.promotion(pieceDesired)
+        
+def game_onKeyPress(app, key):
+    if key == 'r' and app.board.gameOver: 
+        resetBoard(app)
+
+    if key == 'space':
+        setActiveScreen('main')
         resetBoard(app)
 
 def drawPromotionBoard(app):
@@ -184,7 +234,55 @@ def getPromotionCellFromClick(app, mouseX, mouseY):
                 return (row, col)
     return None
 
+def drawMultiplayerButton(app):
+    drawRect(app.width/2,app.height/1.9,app.width/3.5, 50, align = 'center', fill = 'cadetBlue', border = 'black')
+    drawLabel('Multiplayer', app.width/2, app.height/1.9, size = 24, font = 'monospace' , bold = True, align = 'center')
+
+def isMultiplayerClicked(app, mouseX, mouseY):
+    cellLeft, cellTop = 214,291
+    cellWidth, cellHeight = app.width/3.5, 50
+    if ((cellLeft<=mouseX<=cellLeft+cellWidth) and 
+            (cellTop<=mouseY<=cellTop+cellHeight)):
+        return True
+    return False
+
+def drawEasyAIButton(app):
+    drawRect(app.width/2,app.height/1.9+59,app.width/3.5, 50, align = 'center', fill = 'cadetBlue', border = 'black')
+    drawLabel('Easy AI', app.width/2, app.height/1.6, size = 24, font = 'monospace' , bold = True, align = 'center')
+
+def isEasyAIClicked(app, mouseX, mouseY):
+    cellLeft, cellTop = 214,350
+    cellWidth, cellHeight = app.width/3.5, 50
+    if ((cellLeft<=mouseX<=cellLeft+cellWidth) and 
+            (cellTop<=mouseY<=cellTop+cellHeight)):
+        return True
+    return False
+
+def drawMediumAIButton(app):
+    drawRect(app.width/2,app.height/1.9+(59*2),app.width/3.5, 50, align = 'center', fill = 'cadetBlue', border = 'black')
+    drawLabel('Medium AI', app.width/2, app.height/1.9+(59*2), size = 24, font = 'monospace' , bold = True, align = 'center')
+
+def isMediumAIClicked(app, mouseX, mouseY):
+    cellLeft, cellTop = 214, 409
+    cellWidth, cellHeight = app.width/3.5, 50
+    if ((cellLeft<=mouseX<=cellLeft+cellWidth) and 
+            (cellTop<=mouseY<=cellTop+cellHeight)):
+        return True
+    return False
+
+def drawHardAIButton(app):
+    drawRect(app.width/2,app.height/1.9+(59*3),app.width/3.5, 50, align = 'center', fill = 'cadetBlue', border = 'black')
+    drawLabel('Hard AI', app.width/2, app.height/1.9+(59*3), size = 24, font = 'monospace' , bold = True, align = 'center')
+
+def isHardAIClicked(app, mouseX, mouseY):
+    cellLeft, cellTop = 214,468
+    cellWidth, cellHeight = app.width/3.5, 50
+    if ((cellLeft<=mouseX<=cellLeft+cellWidth) and 
+            (cellTop<=mouseY<=cellTop+cellHeight)):
+        return True
+    return False
+
 def main():
-    runApp(width = 600, height = 600)
+    runAppWithScreens(initialScreen = 'main')
 
 main()
