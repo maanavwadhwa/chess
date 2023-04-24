@@ -136,49 +136,50 @@ def getCellFromClick(app, mouseX, mouseY):
     return None
 
 def game_onMousePress(app, mouseX, mouseY):
-    cellLocation = getCellFromClick(app, mouseX, mouseY)
+    if not app.board.gameOver:  
+        cellLocation = getCellFromClick(app, mouseX, mouseY)
 
-    if app.board.promotablePiece == None:
-        #if i click outside of board
-        if cellLocation == None:
-            app.selectedCell = None
+        if app.board.promotablePiece == None:
+            #if i click outside of board
+            if cellLocation == None:
+                app.selectedCell = None
 
-        #if i click on a cell that is already highlighted I want to make it not highlighted
-        if app.selectedCell == cellLocation:
-            app.selectedCell = None
-            app.showMoves = False
+            #if i click on a cell that is already highlighted I want to make it not highlighted
+            if app.selectedCell == cellLocation:
+                app.selectedCell = None
+                app.showMoves = False
 
-        #if I click on piece on the board
-        elif cellLocation != None and app.board.board[cellLocation[0]][cellLocation[1]]!=None:
-            currPiece = app.board.board[cellLocation[0]][cellLocation[1]]
+            #if I click on piece on the board
+            elif cellLocation != None and app.board.board[cellLocation[0]][cellLocation[1]]!=None:
+                currPiece = app.board.board[cellLocation[0]][cellLocation[1]]
 
-            if currPiece.color == app.board.playerTurn:
-                #if my currently selected cell is none (I am not on a piece)
-                if app.selectedCell == None:
-                    app.selectedCell = cellLocation
-        
-                #if my currently selected cell is a piece and I click on a another piece of my color show it
-                elif app.selectedCell!=None and app.board.board[app.selectedCell[0]][app.selectedCell[1]].color == app.board.board[cellLocation[0]][cellLocation[1]].color:
-                    app.selectedCell = cellLocation
-                app.board.message = 'Chess'
-                app.showMoves = True
-            else:
-                app.board.message = 'Not your turn yet!'     
+                if currPiece.color == app.board.playerTurn:
+                    #if my currently selected cell is none (I am not on a piece)
+                    if app.selectedCell == None:
+                        app.selectedCell = cellLocation
+            
+                    #if my currently selected cell is a piece and I click on a another piece of my color show it
+                    elif app.selectedCell!=None and app.board.board[app.selectedCell[0]][app.selectedCell[1]].color == app.board.board[cellLocation[0]][cellLocation[1]].color:
+                        app.selectedCell = cellLocation
+                    app.board.message = 'Chess'
+                    app.showMoves = True
+                else:
+                    app.board.message = 'Not your turn yet!'     
 
-        #if my selectedCell is a piece and the location I click on is None or has piece, move the piece
-        if app.selectedCell!=None:
-            currPiece = app.board.board[app.selectedCell[0]][app.selectedCell[1]]
-            if currPiece.color == app.board.playerTurn:
-                if (cellLocation) in app.board.updatedLegalMoves(currPiece):
-                    app.board.move(currPiece, cellLocation)
-                    app.selectedCell = None
-                    app.showMoves = False
+            #if my selectedCell is a piece and the location I click on is None or has piece, move the piece
+            if app.selectedCell!=None:
+                currPiece = app.board.board[app.selectedCell[0]][app.selectedCell[1]]
+                if currPiece.color == app.board.playerTurn:
+                    if (cellLocation) in app.board.updatedLegalMoves(currPiece):
+                        app.board.move(currPiece, cellLocation)
+                        app.selectedCell = None
+                        app.showMoves = False
 
-    if app.board.promotablePiece!=None:
-        if getPromotionCellFromClick(app, mouseX, mouseY) != None:
-            rowClicked, colClicked = getPromotionCellFromClick(app, mouseX, mouseY)
-            pieceDesired = app.promotionBoard[rowClicked][colClicked]
-            app.board.promotion(pieceDesired)
+        if app.board.promotablePiece!=None:
+            if getPromotionCellFromClick(app, mouseX, mouseY) != None:
+                rowClicked, colClicked = getPromotionCellFromClick(app, mouseX, mouseY)
+                pieceDesired = app.promotionBoard[rowClicked][colClicked]
+                app.board.promotion(pieceDesired)
 
 def game_onMouseRelease(app,mouseX,mouseY):
     if app.board.playerTurn == 'black' and 'AI' in app.mode and not app.board.gameOver:
