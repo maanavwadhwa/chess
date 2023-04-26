@@ -57,6 +57,7 @@ class Board:
         self.fontSize = 35
         self.removedPiece = False
         self.gameLog = []
+        self.textColor = 'gainsboro'
 
     def move(self, piece, desiredCellLocation):#takes piece and place I want it to move and updates board
         #if king is moving two spaces castle, otherwise perform move regularly
@@ -89,6 +90,7 @@ class Board:
             if self.isCheckmate():
                 self.gameOver = True
                 self.message ='Checkmate!! Press r to play again'
+                self.textColor = 'gold' 
                 self.fontSize = 25
             elif self.isStalemate():
                 self.gameOver = True
@@ -98,17 +100,20 @@ class Board:
     def seeIfKingInCheck(self): 
         #is king in check after I simulate move and 
         #is king in check after every move in general
+        self.textColor = 'gainsboro'
         self.kingInCheck = False #false until proven true
         if self.playerTurn == 'black':
             for cell in self.whitePieces:
                 if (self.blackKing.rank, self.blackKing.file) in cell.legalMoves(self.board):
                     self.message = 'Check!'
+                    self.textColor = 'crimson'
                     self.kingInCheck = True  
 
         elif self.playerTurn == 'white':
             for cell in self.blackPieces:
                 if (self.whiteKing.rank, self.whiteKing.file) in cell.legalMoves(self.board):
                     self.message = 'Check!'
+                    self.textColor = 'crimson'
                     self.kingInCheck = True
                     
     def isCheckmate(self):
@@ -181,9 +186,11 @@ class Board:
             if pieceCaptured.color == 'white':
                 self.whitePieces.remove(pieceCaptured)
                 self.removedPiece = True
+                self.textColor = 'gainsboro'
             else:
                 self.blackPieces.remove(pieceCaptured)
                 self.removedPiece= True
+                self.textColor = 'gainsboro'
             self.board[pieceCaptured.rank][pieceCaptured.file] = None
 
     def addPiece(self, piece):#for promotion and updating replicaBoard
@@ -356,16 +363,21 @@ def miniMaxAlgo(boardInstance, depth, maximizing):
 #valueHelper function and value function below for minimax algo
 def valueHelper(boardObject, piece):
     score = 0
-    if piece.rank in (3,4) and piece.file in (3,4) and len(boardObject.blackPieces)>=13:
+    #develop pieces towards center of board
+    if piece.rank in (3,4) and piece.file in (3,4) and len(boardObject.blackPieces)>=13: 
         score+=1
+    #incentivize development of pieces aside from pawns
     if ((type(piece)!= King or type(piece)!=Pawn or type(piece) != Rook) and 
         len(boardObject.gameLog)<12 and piece.movedFromInitialCell):
         score += 2
+    #provide points for knight having at least 4 legal moves
     if type(piece) == Knight and len(piece.legalMoves(boardObject.board))>=4:
         score+=1
+    #if bishop or rook have at least 5 legal moves then reward it
     elif ((type(piece) == Bishop or type(piece) == Rook) and 
             len(piece.legalMoves(boardObject.board))>=5 and len(boardObject.gameLog)<=8):
         score+=1
+    #award a point for queen having at least 15 legal moves
     elif type(piece) == Queen and len(piece.legalMoves(boardObject.board))>15:
         score+=1
     return score
@@ -375,6 +387,7 @@ def value(boardObject):
     #totalpointsWorth when starting game = 9+5(2)+3(4)+8(1)=39
     sumBlack = 0
     sumWhite = 0
+    #tally up points for each players' current pieces on board
     for piece in boardObject.blackPieces:
         sumBlack+=piece.pointsWorth
         score += valueHelper(boardObject, piece)
@@ -388,11 +401,14 @@ def value(boardObject):
     else:
         sign = 1
         kingRank = 7
-        
-    if boardObject.kingInCheck:
+
+    #depending on whose king is in check either reward or deduct points
+    if boardObject.kingInCheck: 
         score += (sign*6)
+    #depending on whose king is in checkmate either reward or deduct points
     if boardObject.isCheckmate():
         score += (sign*400)
+    #reward or deduct points for king having moved
     if type(boardObject.board[kingRank][4])!=King:
         score += (sign*6)
     score+=(sumBlack-sumWhite)

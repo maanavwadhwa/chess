@@ -57,7 +57,7 @@ def main_onMousePress(app, mouseX, mouseY):
 
 def game_redrawAll(app):
     drawRect(0,0, 600, 600, fill = 'darkSlateGray')
-    drawLabel(app.board.message, 300, 25, size=app.board.fontSize, fill = 'gainsboro', font = 'monospace', bold = True)
+    drawLabel(app.board.message, 300, 25, size=app.board.fontSize, fill = app.board.textColor, font = 'monospace', bold = True)
     drawBoard(app)
     drawPieces(app)
     if app.showMoves == True:
@@ -152,7 +152,6 @@ def game_onMousePress(app, mouseX, mouseY):
             #if I click on piece on the board
             elif cellLocation != None and app.board.board[cellLocation[0]][cellLocation[1]]!=None:
                 currPiece = app.board.board[cellLocation[0]][cellLocation[1]]
-
                 if currPiece.color == app.board.playerTurn:
                     #if my currently selected cell is none (I am not on a piece)
                     if app.selectedCell == None:
@@ -161,11 +160,12 @@ def game_onMousePress(app, mouseX, mouseY):
                     #if my currently selected cell is a piece and I click on a another piece of my color show it
                     elif app.selectedCell!=None and app.board.board[app.selectedCell[0]][app.selectedCell[1]].color == app.board.board[cellLocation[0]][cellLocation[1]].color:
                         app.selectedCell = cellLocation
-                    app.board.message = 'Chess'
+                    if app.board.message!='Check!':
+                        app.board.message = 'Chess'
                     app.showMoves = True
-                else:
-                    app.board.message = 'Not your turn yet!'     
-
+                elif app.board.message!="Check!":
+                    app.board.message = 'Not your turn yet!'
+                        
             #if my selectedCell is a piece and the location I click on is None or has piece, move the piece
             if app.selectedCell!=None:
                 currPiece = app.board.board[app.selectedCell[0]][app.selectedCell[1]]
