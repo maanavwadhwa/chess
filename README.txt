@@ -11,7 +11,7 @@ Instructions on Running Project:
 
 - Install cmu_graphics by following the directions here: https://academy.cs.cmu.edu/desktop
 - Make sure the cmu_graphics folder is at the same level/location as the Chess.py file
-- Open the Chess.py file and press Command B to to run the application
+- Run the Chess.py file; this can be done by pressing Command B in Visual Studio Code
 
 
 Libraries Needed:
