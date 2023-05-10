@@ -1,6 +1,6 @@
 # Chessmate
 Hi everyone! Welcome to Chessmate! 
-To see a demo of this project visit https://youtu.be/bpIdy5QT0tg
+To see a demo of this project visit [https://youtu.be/bpIdy5QT0tg](https://youtu.be/xjGIKdfAV8k)
 
 Project Description:
 
